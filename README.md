@@ -1,8 +1,16 @@
 # avito-telegram-bot
 
-Telegram-бот: присылает уведомление о новых входящих сообщениях на Авито:
+Telegram-бот (v1.0.1): присылает уведомление о новых входящих сообщениях на Авито:
 
-> Новое сообщение от пользователя 'Имя' на Авито, 'https://www.avito.ru/profile/messenger/channel/<chat_id>'
+```
+Новое сообщение от 'Имя':
+
+'Текст сообщения'
+
+'https://www.avito.ru/profile/messenger/channel/<chat_id>'
+```
+
+Текст берётся из `last_message.content.text` ответа списка чатов. Для сообщений без текста (фото, голос и т.п.) выводится пометка `[сообщение без текста: <тип>]`. Сообщение отправляется как обычный текст (без parse_mode); ссылку Telegram делает кликабельной сам. Длинный текст обрезается до 3500 символов.
 
 Работает через опрос [Avito Messenger API](https://www.avito.ru/developers/api-catalog)
 (`GET /messenger/v2/accounts/{user_id}/chats?unread_only=true`), OAuth `client_credentials`.
