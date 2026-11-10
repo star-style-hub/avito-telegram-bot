@@ -40,5 +40,14 @@ class TelegramClient:
         raise TelegramError("Telegram API: превышен лимит запросов")
 
 
-def format_message(name: str, url: str) -> str:
-    return "Новое сообщение от пользователя '%s' на Авито, '%s'" % (name, url)
+MAX_TEXT_LEN = 3500  # лимит Telegram 4096 символов на всё сообщение
+
+
+def format_message(name: str, text: str, url: str, msg_type: str = "") -> str:
+    """Plain text без parse_mode: экранирование не нужно, URL Telegram делает кликабельным сам."""
+    if not text:
+        # Текст не придумываем: сообщение без текста (фото, голос и т.п.)
+        text = "[сообщение без текста%s]" % (": " + msg_type if msg_type else "")
+    elif len(text) > MAX_TEXT_LEN:
+        text = text[:MAX_TEXT_LEN] + "…"
+    return "Новое сообщение от '%s':\n\n'%s'\n\n'%s'" % (name, text, url)

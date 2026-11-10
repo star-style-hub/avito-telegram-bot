@@ -10,10 +10,13 @@ ENV = {"AVITO_CLIENT_ID": "a", "AVITO_CLIENT_SECRET": "b",
        "TELEGRAM_BOT_TOKEN": "c", "TELEGRAM_CHAT_ID": "d"}
 
 
-def chat(cid="c1", mid="m1", direction="in", author=2):
+def chat(cid="c1", mid="m1", direction="in", author=2, content=None, mtype="text"):
+    if content is None:
+        content = {"text": "Привет, товар ещё продаётся?"}
     return {"id": cid,
             "users": [{"id": 1, "name": "Я"}, {"id": 2, "name": "Иван"}],
-            "last_message": {"id": mid, "direction": direction, "author_id": author}}
+            "last_message": {"id": mid, "direction": direction, "author_id": author,
+                             "type": mtype, "content": content}}
 
 
 class FakeAvito:
@@ -48,10 +51,40 @@ def test_config_validation():
 def test_message_format_and_extract():
     m = extract_incoming(chat(), "1")
     assert m["name"] == "Иван"
-    assert format_message(m["name"], m["url"]) == (
-        "Новое сообщение от пользователя 'Иван' на Авито, "
+    assert m["text"] == "Привет, товар ещё продаётся?"
+    assert format_message(m["name"], m["text"], m["url"], m["type"]) == (
+        "Новое сообщение от 'Иван':\n\n"
+        "'Привет, товар ещё продаётся?'\n\n"
         "'https://www.avito.ru/profile/messenger/channel/c1'")
     assert extract_incoming(chat(direction="out", author=1), "1") is None
+
+
+@pytest.mark.parametrize("content", [{}, None, {"text": None}, {"image": {}}, "x"])
+def test_non_text_message(content):
+    c = chat(content=content if content is not None else {}, mtype="image")
+    if content is None:
+        c["last_message"].pop("content")
+    m = extract_incoming(c, "1")
+    assert m["text"] == ""
+    out = format_message(m["name"], m["text"], m["url"], m["type"])
+    assert "[сообщение без текста: image]" in out
+    assert out.endswith("channel/c1'")
+
+
+def test_long_text_truncated():
+    out = format_message("Иван", "я" * 10000, "u")
+    assert len(out) < 4096
+
+
+def test_text_in_notification(tmp_path):
+    tg = FakeTg()
+    poll_once(FakeAvito([chat()]), tg, StateStore(str(tmp_path / "s.json")))
+    assert "Привет, товар ещё продаётся?" in tg.sent[0]
+
+
+def test_version():
+    import avito_bot
+    assert avito_bot.__version__ == "1.0.1"
 
 
 def test_dedup_across_restart(tmp_path):

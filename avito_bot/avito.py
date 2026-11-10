@@ -94,9 +94,14 @@ def extract_incoming(chat: Dict[str, Any], my_user_id: str) -> Optional[Dict[str
         if str(u.get("id")) != str(my_user_id) and u.get("name"):
             name = u["name"]
             break
+    content = last.get("content")
+    text = content.get("text") if isinstance(content, dict) else None
+    text = text.strip() if isinstance(text, str) else ""
     return {
         "chat_id": str(chat["id"]),
         "message_id": str(last["id"]),
         "name": name,
+        "text": text,
+        "type": str(last.get("type") or ""),
         "url": CHAT_URL.format(chat_id=chat["id"]),
     }

@@ -2,6 +2,7 @@ import logging
 import sys
 import time
 
+from . import __version__
 from .avito import AvitoClient, AvitoError, extract_incoming
 from .config import ConfigError, load_config, load_dotenv
 from .state import StateStore
@@ -22,7 +23,7 @@ def poll_once(avito, tg, state, first_run_baseline: bool = False) -> int:
             state.mark(msg["chat_id"], msg["message_id"])
             continue
         try:
-            tg.send(format_message(msg["name"], msg["url"]))
+            tg.send(format_message(msg["name"], msg["text"], msg["url"], msg["type"]))
         except TelegramError as e:
             log.error("Не удалось отправить уведомление: %s", e)
             continue  # не помечаем — повторим на следующем цикле
@@ -46,7 +47,7 @@ def main() -> int:
     tg = TelegramClient(cfg.telegram_bot_token, cfg.telegram_chat_id)
     state = StateStore(cfg.state_file)
     baseline = not state.exists and not cfg.notify_existing_unread
-    log.info("Бот запущен, интервал опроса %s с", cfg.poll_interval)
+    log.info("Бот v%s запущен, интервал опроса %s с", __version__, cfg.poll_interval)
     while True:
         try:
             n = poll_once(avito, tg, state, first_run_baseline=baseline)
